@@ -1,0 +1,177 @@
+---
+title: "Preston Curve"
+author: "Team C"
+date: "2/16/2022"
+output: html_document
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, fig.align = "center")
+```
+
+Here are the libraries needed for this activity. You may uncomment the lines containing `install.package` if you do not already have the appropriate packages installed on your computer. If the `repos` is not specified, `RStudio` yields an error upon knitting this document. More information about the same can be found here: https://stackoverflow.com/questions/33969024/install-packages-fails-in-knitr-document-trying-to-use-cran-without-setting-a
+
+```{r warning = FALSE}
+library(tidyverse)
+# install.packages("ggrepel", repos = "http://cran.us.r-project.org")
+library(ggrepel)
+# install.packages("gifski", repos = "http://cran.us.r-project.org")
+library(gifski)
+# install.packages("transformr", repos = "http://cran.us.r-project.org")
+library(transformr)
+```
+
+# 1. Loading data
+
+```{r}
+lq <- read_csv("life_quality.csv")
+```
+
+# 2. Bubble chart
+
+```{r}
+lq_plot <- ggplot(lq, aes(
+  gdp_per_capita,
+  life_expectancy,
+  size = pop,
+  color = continent
+)) +
+  geom_point(alpha = 0.5) +
+  labs(
+    title = "Wealth and Health by Country in 2015",
+    x = "GDP per capita (US$, PPP 2015)",
+    y = "Life expectancy (years)",
+    caption = "Source: World Bank"
+  )
+
+lq_plot
+```
+
+# 3. Changing the axis
+
+```{r}
+# Logarithmic minor breaks
+mb <- unique(as.numeric(1:10 %o% 10^(0:6)))
+
+# Creating a copy of the plot to demonstrate log2 later
+lq_plot_log2 <- lq_plot
+
+# Transforming x axis with log base 10
+lq_plot <- lq_plot +
+  scale_x_log10(
+    minor_breaks = mb,
+
+    # automatically format labels with dollar symbol and appropriate commas
+    labels = scales::dollar_format()
+  )
+
+lq_plot
+```
+
+`ggplot2` uses a logarithmic scale of base 10 whereas Gapminder uses base 2. As a result, it is more intuitive to use markings that correspond to the powers of the respective base (powers of 10 instead of 2) as those points are equally distant and users can visually identify the base used for the logarithmic scale.
+
+If we want something more akin to Gapminder's plot, where they've used base 2, we can do so with the following code snippet.
+
+```{r}
+# Logarithmic minor breaks
+mb_2 <- unique(as.numeric(1:10 %o% 2^(0:6)))
+
+# Transforming x axis with log base 2
+lq_plot_log2 <- lq_plot_log2 +
+  scale_x_continuous(
+    labels = scales::dollar_format(),
+    trans = "log2"
+  )
+
+lq_plot_log2
+```
+
+# 4. Changing the bubble size legend
+
+```{r}
+lq_plot <- lq_plot +
+  scale_size_area(
+    breaks = 10^(6:9), # breaks for bubble sizes
+    labels = c(
+      "1 million",
+      "10 million",
+      "100 million",
+      "1 billion"
+    ),
+    max_size = 20 # max bubble size
+  )
+
+lq_plot
+```
+
+# 5. Changing color
+
+```{r}
+lq_plot <- lq_plot +
+  scale_color_brewer(palette = "Set1") # colors from colorbrewer2.org
+
+lq_plot
+```
+
+# 6. Changing opacity in the legend
+
+```{r}
+lq_plot <- lq_plot +
+  guides(
+    colour = guide_legend(
+      override.aes = list(alpha = 1, size = 5),
+      title = "Continent"
+    ),
+    size = guide_legend(title = "Population")
+  )
+
+lq_plot
+```
+
+# 7. Fitting a line
+
+```{r}
+lq_plot <- lq_plot +
+  geom_smooth(
+    aes(weight = pop),
+    method = loess, color = "dimgray", show.legend = FALSE
+  )
+
+lq_plot
+```
+
+# 8. Adding country labels
+
+```{r fig.width=10, fig.height=5, out.width='100%'}
+chosen_lq <-
+  slice_max(lq, n = 5, gdp_per_capita) |> # Top 5 GDP per capita
+  full_join(slice_min(lq, n = 5, gdp_per_capita)) |> # Bottom 5 GDP per capita
+  full_join(slice_max(lq, n = 5, life_expectancy)) |> # Top 5 life expectancy
+  full_join(slice_min(lq, n = 5, life_expectancy)) |> # Bottom 5 life expectancy
+  full_join(slice_max(lq, n = 5, pop)) # Top 5 population
+
+# Adding annotations
+lq_plot <- lq_plot +
+  ylim(45, 90) +
+  ggrepel::geom_text_repel(
+    aes(
+      gdp_per_capita,
+      life_expectancy,
+      label = country_name,
+      color = continent
+    ),
+    chosen_lq,
+    show.legend = FALSE,
+    size = 3
+  )
+
+lq_plot
+```
+
+# 9. About the data
+
+The plot shows a positive correlation of GDP per capita (US\$, PPP 2015) with Life expectancy (years). In other words, the general trend of the plot is that as GDP per capita increases, life expectancy increases as well.
+
+This trend stops at around the United States, after which there is a slight negative correlation between GDP per capita and life expectancy. However, there are few countries in that region, which is why the standard error increases as well (shown by the large grey uncertainty interval).
+
+It is also observable that most countries with around \$1,000 GDP per capita and lower are from Africa, while most countries with around \$100,000 GDP per capita and higher are European countries. Correspondingly, most African countries have lower life expectancies than European countries. This shows the income and life expectancy disparity between the two continents. For other countries such as China, who has the largest population, it is in the higher mid-range, above the second most populous country, India, in both GDP per capita and life expectancy. 
