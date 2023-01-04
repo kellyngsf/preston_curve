@@ -1,6 +1,8 @@
 # Preston Curve
 Following the 'Wealth and Health of Countries (2015) Using Choropleth Maps' project, this is a follow-up project to plot the same data through a different visualization. A problem with the wealth choropleth map and health choropleth map was the difficulty for readers to shift their attention between the two maps to observe a relationship between the two variables. Hence, in this project, I used a preston curve (bubble chart) to plot life expectancy and GDP per capita on the y and x axis, respectively. This plot will aim to better represent the relationship between these two variables and emphasize which countries are on the higher or lower scale on wealth and health in 2015. 
 
+For easy access to choropleth_maps.html, click on this link: https://kellyngsf.github.io/choropleth_maps/choropleth_maps.html.
+
 ![](https://github.com/kellyngsf/preston_curve/blob/main/images/preston_curve.png)
 
 # Conclusions
